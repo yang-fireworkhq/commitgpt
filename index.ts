@@ -6,6 +6,7 @@ import ora from "ora";
 
 import { ChatGPTClient } from "./client.js";
 import { loadPromptTemplate } from "./config_storage.js";
+import childProcess from "child_process";
 
 const debug = (...args: unknown[]) => {
   if (process.env.DEBUG) {
@@ -13,7 +14,7 @@ const debug = (...args: unknown[]) => {
   }
 };
 
-const CUSTOM_MESSAGE_OPTION = "[write own message]...";
+const CUSTOM_MESSAGE_OPTION = "[Copy the result to clipboard]...";
 const spinner = ora();
 
 let diff = "";
@@ -28,7 +29,16 @@ try {
   process.exit(1);
 }
 
-run(diff)
+let currentBranch = "";
+try {
+  currentBranch = execSync("git branch --show-current").toString();
+  currentBranch = currentBranch.replace(/[\r\n]/gm, "").trim();
+} catch (e) {
+  console.log("Failed to run git branch --show-current");
+  process.exit(1);
+}
+
+run(diff, currentBranch)
   .then(() => {
     process.exit(0);
   })
@@ -37,38 +47,41 @@ run(diff)
     process.exit(1);
   });
 
-async function run(diff: string) {
+async function run(diff: string, currentBranch: string) {
   // TODO: we should use a good tokenizer here
   const diffTokens = diff.split(" ").length;
-  if (diffTokens > 2000) {
-    console.log(`Diff is way too bug. Truncating to 700 tokens. It may help`);
-    diff = diff.split(" ").slice(0, 700).join(" ");
+  if (diffTokens > 5000) {
+    console.log(`Diff is way too bug. Truncating to 2000 tokens. It may help`);
+    diff = diff.split(" ").slice(0, 2000).join(" ");
   }
 
   const api = new ChatGPTClient();
 
-  const prompt = loadPromptTemplate().replace(
-    "{{diff}}",
-    ["```", diff, "```"].join("\n")
-  );
+  const prompt = loadPromptTemplate()
+    .replace(/{{currentBranch}}/g, currentBranch)
+    .replace("{{diff}}", ["```", diff, "```"].join("\n"));
 
   while (true) {
     debug("prompt: ", prompt);
     const choices = await getMessages(api, prompt);
 
+    const result = escapeCommitMessage(choices[0]);
+
     try {
       const answer = await enquirer.prompt<{ message: string }>({
         type: "select",
         name: "message",
-        message: "Pick a message",
+        message: "Use message or copy to clipboard",
         choices,
       });
 
       if (answer.message === CUSTOM_MESSAGE_OPTION) {
-        execSync("git commit", { stdio: "inherit" });
+        var proc = childProcess.spawn("pbcopy");
+        proc.stdin.write(result);
+        proc.stdin.end();
         return;
       } else {
-        execSync(`git commit -m '${escapeCommitMessage(answer.message)}'`, {
+        execSync(`git commit -m '${result}'`, {
           stdio: "inherit",
         });
         return;
@@ -89,7 +102,7 @@ async function getMessages(api: ChatGPTClient, request: string) {
     const response = await api.getAnswer(request);
     // find json array of strings in the response
     const messages = response
-      .split("\n")
+      .split("\n====\n")
       .map(normalizeMessage)
       .filter((l) => l.length > 1);
 

@@ -59,20 +59,12 @@ function assertTempValid(t: string) {
 }
 
 export function loadPromptTemplate(): string {
-  if (existsSync(LOCAL_CONFIG_PATH)) {
-    const temp = readFileSync(LOCAL_PROMPT_TEMPLATE_PATH, "utf-8");
-    assertTempValid(temp);
-
-    return temp;
-  }
-
   if (existsSync(GLOBAL_PROMPT_TEMPLATE_PATH)) {
     const temp = readFileSync(GLOBAL_PROMPT_TEMPLATE_PATH, "utf-8");
     assertTempValid(temp);
 
     return temp;
   }
-
   return defaultPromptTemplate;
 }
 

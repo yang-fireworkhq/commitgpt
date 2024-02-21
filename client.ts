@@ -1,26 +1,26 @@
-// Adapted from: https://github.com/wong2/chat-gpt-google-extension/blob/main/background/index.mjs
-
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 import { getApiKey, getPromptOptions } from "./config.js";
 import { getConfig } from "./config_storage.js";
 
-const configuration = new Configuration({
+const openai = new OpenAI({
   apiKey: await getApiKey(),
 });
-const openai = new OpenAIApi(configuration);
 
 export class ChatGPTClient {
   async getAnswer(question: string): Promise<string> {
     const { model, maxTokens, temperature } = await getPromptOptions();
 
     try {
-      const result = await openai.createCompletion({
+      const result = await openai.chat.completions.create({
         model,
-        prompt: question,
-        max_tokens: maxTokens,
-        temperature,
+        messages: [
+          {
+            role: "user",
+            content: question,
+          },
+        ],
       });
-      return result.data.choices[0].text;
+      return result.choices[0].message.content;
     } catch (e) {
       console.error(e?.response ?? e);
       throw e;

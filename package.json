@@ -8,7 +8,8 @@
   "scripts": {
     "build": "tsc",
     "start": "ts-node --esm index.ts",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "installToGlobal": "npm install -g ."
   },
   "repository": {
     "type": "git",
@@ -23,8 +24,9 @@
   "homepage": "https://github.com/RomanHotsiy/commitgpt#readme",
   "dependencies": {
     "enquirer": "^2.3.6",
-    "openai": "^3.2.1",
+    "openai": "^4.28.0",
     "ora": "^6.1.2",
+    "typescript": "^5.3.3",
     "uuid": "^9.0.0",
     "ws": "^8.12.1",
     "yargs-parser": "^21.1.1"
