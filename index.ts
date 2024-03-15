@@ -50,7 +50,7 @@ run(diff, currentBranch)
 async function run(diff: string, currentBranch: string) {
   // TODO: we should use a good tokenizer here
   const diffTokens = diff.split(" ").length;
-  if (diffTokens > 5000) {
+  if (diffTokens > 2000) {
     console.log(`Diff is way too bug. Truncating to 2000 tokens. It may help`);
     diff = diff.split(" ").slice(0, 2000).join(" ");
   }
